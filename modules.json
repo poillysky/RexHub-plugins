@@ -1,0 +1,13 @@
+{
+  "modules": [
+    {
+      "id": "rexhub.hongguo.video",
+      "title": "红果视频流",
+      "description": "红果漫剧播放层：本地解密并代理 /v1/episodes/{id}/stream 视频流，供短剧插件播放使用",
+      "version": "3.4.6",
+      "author": "RexHub",
+      "port": 25566,
+      "file": "modules/hongguo-video.mjs"
+    }
+  ]
+}
