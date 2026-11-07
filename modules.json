@@ -4,7 +4,7 @@
       "id": "rexhub.hongguo.video",
       "title": "红果短剧",
       "description": "红果短剧全能力插件：榜单/筛选/目录/搜索/详情 + 播放流解密代理，单进程提供全部接口",
-      "version": "4.0.0",
+      "version": "4.0.1",
       "author": "RexHub",
       "category": "shortdrama",
       "file": "modules/hongguo-video.mjs",
