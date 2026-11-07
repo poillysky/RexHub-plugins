@@ -4,10 +4,8 @@ import https from 'node:https';
 import crypto from 'node:crypto';
 import zlib from 'node:zlib';
 
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 const PROXY = String(process.env.REXHUB_PLUGIN_PROXY || '').trim();
-const LISTEN_PORT = Number(process.env.REXHUB_PLUGIN_PORT || 0);
-const LISTEN_HOST = String(process.env.REXHUB_PLUGIN_HOST || '127.0.0.1');
 const UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
 const MEDIA_KEY = Buffer.from('f5d965df75336270', 'utf8');
 const MEDIA_IV = Buffer.from('97b60394abc2fbe1', 'utf8');
@@ -198,14 +196,15 @@ function required(value, message) {
   return text;
 }
 
-function sendJson(response, status, payload) {
-  const body = Buffer.from(JSON.stringify(payload), 'utf8');
-  response.writeHead(status, {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Cache-Control': 'no-store',
-    'Access-Control-Allow-Origin': '*',
+function jsonResponse(status, payload) {
+  return new Response(JSON.stringify(payload), {
+    status,
+    headers: {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'Access-Control-Allow-Origin': '*',
+    },
   });
-  response.end(body);
 }
 
 const HG_BASE = 'https://huangguoai.com';
@@ -413,90 +412,90 @@ async function handleStream(rawId) {
   return url;
 }
 
-const server = http.createServer(async function (request, response) {
-  try {
-    if (request.method === 'OPTIONS') {
-      response.writeHead(204, {
+async function handleRequest(request) {
+  if (request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
         'Access-Control-Allow-Origin': '*',
         'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
         'Access-Control-Allow-Headers': '*',
-      });
-      response.end();
-      return;
+      },
+    });
+  }
+  if (request.method !== 'GET' && request.method !== 'HEAD') {
+    return jsonResponse(405, { error: { code: 'METHOD_NOT_ALLOWED', message: '仅支持 GET' } });
+  }
+  const url = new URL(request.url || '/', 'http://127.0.0.1');
+  const path = url.pathname.replace(/\/+$/, '') || '/';
+  if (path === '/' || path === '/health') {
+    return jsonResponse(200, { ok: true, name: SOURCE.name, version: VERSION });
+  }
+  if (path === '/v1/list') {
+    return jsonResponse(200, await handleList(url.searchParams));
+  }
+  if (path === '/v1/search') {
+    return jsonResponse(200, await handleSearch(url.searchParams));
+  }
+  const detailMatch = path.match(/^\/v1\/detail\/([^/]+)$/);
+  if (detailMatch) {
+    return jsonResponse(200, await handleDetail(detailMatch[1]));
+  }
+  const streamMatch = path.match(/^\/v1\/episodes\/([^/]+)\/stream$/);
+  if (streamMatch) {
+    const target = await handleStream(streamMatch[1]);
+    if (url.searchParams.get('json') === '1') {
+      return jsonResponse(200, { url: target });
     }
-    if (request.method !== 'GET' && request.method !== 'HEAD') {
-      sendJson(response, 405, { error: { code: 'METHOD_NOT_ALLOWED', message: '仅支持 GET' } });
-      return;
-    }
-    const url = new URL(request.url || '/', 'http://127.0.0.1');
-    const path = url.pathname.replace(/\/+$/, '') || '/';
-    if (path === '/' || path === '/health') {
-      sendJson(response, 200, { ok: true, name: SOURCE.name, version: VERSION });
-      return;
-    }
-    if (path === '/v1/list') {
-      sendJson(response, 200, await handleList(url.searchParams));
-      return;
-    }
-    if (path === '/v1/search') {
-      sendJson(response, 200, await handleSearch(url.searchParams));
-      return;
-    }
-    const detailMatch = path.match(/^\/v1\/detail\/([^/]+)$/);
-    if (detailMatch) {
-      sendJson(response, 200, await handleDetail(detailMatch[1]));
-      return;
-    }
-    const streamMatch = path.match(/^\/v1\/episodes\/([^/]+)\/stream$/);
-    if (streamMatch) {
-      const target = await handleStream(streamMatch[1]);
-      if (url.searchParams.get('json') === '1') {
-        sendJson(response, 200, { url: target });
-        return;
-      }
-      response.writeHead(302, {
+    return new Response(null, {
+      status: 302,
+      headers: {
         Location: target,
         'Cache-Control': 'no-store',
         'Access-Control-Allow-Origin': '*',
-      });
-      response.end();
-      return;
+      },
+    });
+  }
+  if (path === '/v1/cover') {
+    const target = String(url.searchParams.get('url') || '').trim();
+    if (!/^https:\/\//i.test(target)) throw new Error('封面地址不合法');
+    const parsed = new URL(target);
+    if (privateHost(parsed.hostname)) throw new Error('封面地址不允许指向内网');
+    const upstream = await fetchBuffer(target, {
+      headers: {
+        'User-Agent': UA,
+        Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+      },
+      timeout: 20000,
+      retries: 1,
+    });
+    let bytes = upstream.body;
+    if (!isImage(bytes)) {
+      const decrypted = decryptCover(bytes);
+      if (!decrypted) throw new Error('封面解密失败');
+      bytes = decrypted;
     }
-    if (path === '/v1/cover') {
-      const target = String(url.searchParams.get('url') || '').trim();
-      if (!/^https:\/\//i.test(target)) throw new Error('封面地址不合法');
-      const parsed = new URL(target);
-      if (privateHost(parsed.hostname)) throw new Error('封面地址不允许指向内网');
-      const upstream = await fetchBuffer(target, {
-        headers: { 'User-Agent': UA, Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8' },
-        timeout: 20000,
-        retries: 1,
-      });
-      let bytes = upstream.body;
-      if (!isImage(bytes)) {
-        const decrypted = decryptCover(bytes);
-        if (!decrypted) throw new Error('封面解密失败');
-        bytes = decrypted;
-      }
-      response.writeHead(200, {
+    return new Response(bytes, {
+      status: 200,
+      headers: {
         'Content-Type': imageMime(bytes),
         'Content-Length': String(bytes.length),
         'Cache-Control': 'public, max-age=1800',
         'Access-Control-Allow-Origin': '*',
-      });
-      response.end(request.method === 'HEAD' ? undefined : bytes);
-      return;
-    }
-    sendJson(response, 404, { error: { code: 'NOT_FOUND', message: '接口不存在' } });
-  } catch (error) {
-    sendJson(response, 502, {
-      error: { code: 'UPSTREAM_FAILED', message: String((error && error.message) || error) },
+      },
     });
   }
-});
+  return jsonResponse(404, { error: { code: 'NOT_FOUND', message: '接口不存在' } });
+}
 
-server.listen(LISTEN_PORT, LISTEN_HOST, function () {
-  const address = server.address();
-  const port = address && typeof address === 'object' ? address.port : LISTEN_PORT;
-  process.stdout.write('REXHUB_MODULE_READY ' + JSON.stringify({ port }) + '\n');
-});
+export default {
+  async fetch(request) {
+    try {
+      return await handleRequest(request);
+    } catch (error) {
+      return jsonResponse(502, {
+        error: { code: 'UPSTREAM_FAILED', message: String((error && error.message) || error) },
+      });
+    }
+  },
+};
