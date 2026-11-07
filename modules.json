@@ -10,7 +10,12 @@
       "file": "modules/hongguo-video.mjs",
       "capabilities": [
         "playback.extract",
-        "playback.stream"
+        "playback.stream",
+        "resource.search",
+        "metadata.tv",
+        "danmaku.search",
+        "danmaku.detail",
+        "danmaku.fetch"
       ],
       "endpoints": {
         "playback.extract": {
@@ -19,6 +24,26 @@
         },
         "playback.stream": {
           "path": "/v1/episodes/{id}/stream",
+          "method": "GET"
+        },
+        "resource.search": {
+          "path": "/v1/search",
+          "method": "GET"
+        },
+        "metadata.tv": {
+          "path": "/v1/series/{id}",
+          "method": "GET"
+        },
+        "danmaku.search": {
+          "path": "/v1/dandanplay/api/v2/search/anime",
+          "method": "GET"
+        },
+        "danmaku.detail": {
+          "path": "/v1/dandanplay/api/v2/bangumi/{animeId}",
+          "method": "GET"
+        },
+        "danmaku.fetch": {
+          "path": "/v1/dandanplay/api/v2/comment/{commentId}",
           "method": "GET"
         }
       },
