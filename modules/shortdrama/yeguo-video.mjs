@@ -334,6 +334,11 @@ async function ygThemeList() {
   return ygThemes;
 }
 
+function ygCover(raw) {
+  const url = String((raw && raw.cover) || '').trim();
+  return url ? '/v1/cover?url=' + encodeURIComponent(url) : '';
+}
+
 function ygShow(raw) {
   if (!raw || typeof raw !== 'object') return null;
   const id = String(raw.video_id || raw.id || '').trim();
@@ -351,7 +356,7 @@ function ygShow(raw) {
   return {
     id,
     title: String(raw.title || id).trim(),
-    cover: String(raw.cover || '').trim(),
+    cover: ygCover(raw),
     description: String(raw.description || '').trim(),
     total: Number(raw.episode_count || raw.episodes || raw.total_serial || 0) || 0,
     finished: String(raw.serialize_status) === '2',
@@ -409,7 +414,7 @@ const SOURCE = {
     return {
       id,
       title: String(data.title || id),
-      cover: String(data.cover || ''),
+      cover: ygCover(data),
       description: String(data.description || ''),
       total,
       finished: String(data.serialize_status) === '2',

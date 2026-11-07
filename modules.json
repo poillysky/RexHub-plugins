@@ -84,7 +84,7 @@
       "id": "rexhub.yeguo.video",
       "title": "野果短剧",
       "description": "野果短剧插件：主题/推荐/搜索/详情/播放直连，加密接口与多线路回退",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "author": "RexHub",
       "category": "shortdrama",
       "file": "modules/shortdrama/yeguo-video.mjs",
@@ -216,7 +216,7 @@
       "id": "rexhub.huangdou.video",
       "title": "黄豆短剧",
       "description": "黄豆短剧插件：频道/热门/最新/搜索/详情/播放直连，签名请求与多线路回退",
-      "version": "1.0.3",
+      "version": "1.0.4",
       "author": "RexHub",
       "category": "shortdrama",
       "file": "modules/shortdrama/huangdou-video.mjs",
@@ -261,8 +261,7 @@
         },
         "shortdrama.stream": {
           "path": "/v1/episodes/{id}/stream",
-          "method": "GET",
-          "redirect": true
+          "method": "GET"
         }
       },
       "runtime": {
