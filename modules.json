@@ -1,5 +1,98 @@
 {
+  "name": "RexHub 插件仓库",
+  "version": 1,
   "modules": [
+    {
+      "id": "rexhub.hongguo.video",
+      "title": "红果短剧",
+      "description": "红果短剧全能力插件：榜单/筛选/目录/搜索/详情 + 播放流解密代理，单进程提供全部接口",
+      "version": "4.0.1",
+      "author": "RexHub",
+      "category": "shortdrama",
+      "file": "modules/shortdrama/hongguo-video.mjs",
+      "capabilities": [
+        "playback.extract",
+        "playback.stream",
+        "resource.search",
+        "metadata.tv",
+        "danmaku.search",
+        "danmaku.detail",
+        "danmaku.fetch"
+      ],
+      "endpoints": {
+        "playback.extract": {
+          "path": "/v1/rankings",
+          "method": "GET"
+        },
+        "playback.stream": {
+          "path": "/v1/episodes/{id}/stream",
+          "method": "GET"
+        },
+        "resource.search": {
+          "path": "/v1/search",
+          "method": "GET"
+        },
+        "metadata.tv": {
+          "path": "/v1/series/{id}",
+          "method": "GET"
+        },
+        "danmaku.search": {
+          "path": "/v1/dandanplay/api/v2/search/anime",
+          "method": "GET"
+        },
+        "danmaku.detail": {
+          "path": "/v1/dandanplay/api/v2/bangumi/{animeId}",
+          "method": "GET"
+        },
+        "danmaku.fetch": {
+          "path": "/v1/dandanplay/api/v2/comment/{commentId}",
+          "method": "GET"
+        }
+      },
+      "runtime": {
+        "type": "isolated",
+        "engine": "node",
+        "entrypoint": "module.mjs"
+      }
+    },
+    {
+      "id": "rexhub.yeguo.video",
+      "title": "野果短剧",
+      "description": "野果短剧插件：主题/推荐/搜索/详情/播放直连，加密接口与多线路回退",
+      "version": "1.0.0",
+      "author": "RexHub",
+      "category": "shortdrama",
+      "file": "modules/shortdrama/yeguo-video.mjs",
+      "capabilities": [
+        "playback.extract",
+        "playback.stream",
+        "resource.search",
+        "metadata.tv"
+      ],
+      "endpoints": {
+        "playback.extract": {
+          "path": "/v1/list",
+          "method": "GET"
+        },
+        "playback.stream": {
+          "path": "/v1/episodes/{id}/stream",
+          "method": "GET"
+        },
+        "resource.search": {
+          "path": "/v1/search",
+          "method": "GET"
+        },
+        "metadata.tv": {
+          "path": "/v1/detail/{id}",
+          "method": "GET"
+        }
+      },
+      "runtime": {
+        "type": "isolated",
+        "engine": "node",
+        "entrypoint": "module.mjs"
+      }
+    },
     {
       "id": "rexhub.huangguo.video",
       "title": "黄果短剧",
@@ -7,7 +100,7 @@
       "version": "1.0.0",
       "author": "RexHub",
       "category": "shortdrama",
-      "file": "modules/huangguo-video.mjs",
+      "file": "modules/shortdrama/huangguo-video.mjs",
       "capabilities": [
         "playback.extract",
         "playback.stream",
@@ -45,7 +138,7 @@
       "version": "1.0.0",
       "author": "RexHub",
       "category": "shortdrama",
-      "file": "modules/huangdou-video.mjs",
+      "file": "modules/shortdrama/huangdou-video.mjs",
       "capabilities": [
         "playback.extract",
         "playback.stream",
@@ -67,97 +160,6 @@
         },
         "metadata.tv": {
           "path": "/v1/detail/{id}",
-          "method": "GET"
-        }
-      },
-      "runtime": {
-        "type": "isolated",
-        "engine": "node",
-        "entrypoint": "module.mjs"
-      }
-    },
-    {
-      "id": "rexhub.yeguo.video",
-      "title": "野果短剧",
-      "description": "野果短剧插件：主题/推荐/搜索/详情/播放直连，加密接口与多线路回退",
-      "version": "1.0.0",
-      "author": "RexHub",
-      "category": "shortdrama",
-      "file": "modules/yeguo-video.mjs",
-      "capabilities": [
-        "playback.extract",
-        "playback.stream",
-        "resource.search",
-        "metadata.tv"
-      ],
-      "endpoints": {
-        "playback.extract": {
-          "path": "/v1/list",
-          "method": "GET"
-        },
-        "playback.stream": {
-          "path": "/v1/episodes/{id}/stream",
-          "method": "GET"
-        },
-        "resource.search": {
-          "path": "/v1/search",
-          "method": "GET"
-        },
-        "metadata.tv": {
-          "path": "/v1/detail/{id}",
-          "method": "GET"
-        }
-      },
-      "runtime": {
-        "type": "isolated",
-        "engine": "node",
-        "entrypoint": "module.mjs"
-      }
-    },
-    {
-      "id": "rexhub.hongguo.video",
-      "title": "红果短剧",
-      "description": "红果短剧全能力插件：榜单/筛选/目录/搜索/详情 + 播放流解密代理，单进程提供全部接口",
-      "version": "4.0.1",
-      "author": "RexHub",
-      "category": "shortdrama",
-      "file": "modules/hongguo-video.mjs",
-      "capabilities": [
-        "playback.extract",
-        "playback.stream",
-        "resource.search",
-        "metadata.tv",
-        "danmaku.search",
-        "danmaku.detail",
-        "danmaku.fetch"
-      ],
-      "endpoints": {
-        "playback.extract": {
-          "path": "/v1/rankings",
-          "method": "GET"
-        },
-        "playback.stream": {
-          "path": "/v1/episodes/{id}/stream",
-          "method": "GET"
-        },
-        "resource.search": {
-          "path": "/v1/search",
-          "method": "GET"
-        },
-        "metadata.tv": {
-          "path": "/v1/series/{id}",
-          "method": "GET"
-        },
-        "danmaku.search": {
-          "path": "/v1/dandanplay/api/v2/search/anime",
-          "method": "GET"
-        },
-        "danmaku.detail": {
-          "path": "/v1/dandanplay/api/v2/bangumi/{animeId}",
-          "method": "GET"
-        },
-        "danmaku.fetch": {
-          "path": "/v1/dandanplay/api/v2/comment/{commentId}",
           "method": "GET"
         }
       },
