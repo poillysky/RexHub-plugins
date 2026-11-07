@@ -59,7 +59,7 @@
       "id": "rexhub.yeguo.video",
       "title": "野果短剧",
       "description": "野果短剧插件：主题/推荐/搜索/详情/播放直连，加密接口与多线路回退",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "author": "RexHub",
       "category": "shortdrama",
       "file": "modules/shortdrama/yeguo-video.mjs",
@@ -91,13 +91,20 @@
         "type": "isolated",
         "engine": "node",
         "entrypoint": "module.mjs"
+      },
+      "ui": {
+        "shortdrama": {
+          "accent": "#af52de",
+          "subtitle": "主题 · 推荐 · 直接播放",
+          "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M12 21c-4-2-6-5-6-9a6 6 0 0 1 12 0c0 4-2 7-6 9z\"/><path d=\"M12 21V10\"/></svg>"
+        }
       }
     },
     {
       "id": "rexhub.huangguo.video",
       "title": "黄果短剧",
       "description": "黄果短剧插件：热门/排行榜/频道/搜索/详情/播放直连，封面解密转发",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "author": "RexHub",
       "category": "shortdrama",
       "file": "modules/shortdrama/huangguo-video.mjs",
@@ -129,13 +136,20 @@
         "type": "isolated",
         "engine": "node",
         "entrypoint": "module.mjs"
+      },
+      "ui": {
+        "shortdrama": {
+          "accent": "#ff9500",
+          "subtitle": "热门 · 排行榜 · 直接播放",
+          "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"m12.296 3.464 3.02 3.956\"/><path d=\"M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3z\"/><path d=\"M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z\"/><path d=\"m6.18 5.276 3.1 3.899\"/></svg>"
+        }
       }
     },
     {
       "id": "rexhub.huangdou.video",
       "title": "黄豆短剧",
       "description": "黄豆短剧插件：频道/热门/最新/搜索/详情/播放直连，签名请求与多线路回退",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "author": "RexHub",
       "category": "shortdrama",
       "file": "modules/shortdrama/huangdou-video.mjs",
@@ -167,6 +181,13 @@
         "type": "isolated",
         "engine": "node",
         "entrypoint": "module.mjs"
+      },
+      "ui": {
+        "shortdrama": {
+          "accent": "#34c759",
+          "subtitle": "频道 · 搜索 · 直接播放",
+          "icon": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><rect x=\"3\" y=\"5\" width=\"18\" height=\"14\" rx=\"3\"/><path d=\"M8 5v14M16 5v14\"/></svg>"
+        }
       }
     }
   ]
