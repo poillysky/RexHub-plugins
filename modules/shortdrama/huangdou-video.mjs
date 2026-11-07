@@ -207,6 +207,8 @@ function jsonResponse(status, payload) {
   });
 }
 
+const LOGO_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAQKADAAQAAAABAAAAQAAAAABGUUKwAAAIDUlEQVR4AeVbfagUVRQ/d2bfh/p6iZ8ZJloIEYQVpFR+RBaBf5gkZf1jYKBEEhIVRAQWFdQ/pVQWGBHUX5URgUH2T1CUSoWRlfidX5lJH++pT3dnbr/fnb3vzc57Ozuzszu8t3vY2Znde+fcc3733HPOvXdGiYjGkZiUUlJ52Fv5v71u7lkbiQOxea3xFT7StE6RawJAhR3HwREon6aBvOsSCN/n4RtQarVfEwDXdcV1nVp8RmW55/nieV6sbFUBYK8XCq4x91gOo7yQFlEqeVWtYUQAaOqFQmGUq5ZOvFKpZIZG9K5htt2KylNpdih1i1IFAIHZt1bPhxUmCNQxTBUAcMy3OkV1HASA3j6KTiuCQR2pqyUDAK1irIY6q0iaM3W1I8EA4DhDiKRhNJbrWp3LAFQ6hrGsWFLZbURwOCbaYexHgbF6GwCihe3ymyAUrCk0QmnjTAfjigjmJMi+snFm7oJ52CCRH/k2gkzSJ9KY8c/50sUijsjco7sb000IXY/M5HnhIlQN3wxxx3WJYJ7TAIIF2HCQhRt76MKAyBWTRZbOd2T2DCX/9Yt8vceXH/dp6ewEzBCcc/ekxJ4nz6uvVLJ0gZIZU5ScPqtlx04th05o6QYIWS2BMmXOe6n8AAR98E5HXn3ClenTwRUfkj/gytsf+rJhc8n85t9JMKDyA+j5Dfe58tyjrvRONLebr75/RJ7e7Mkb27yGgICkyN1YrxUYs78kcuv1Sra/1iE93UqK6HkfwvsARWE4zF+kRJ8X+XK3li5YQq1eY5JGQFcB0K0vFaQL2BXPlXlegPmDxzKU7dyjZd/vsK6OdJY1BCWvsNBTr/LmdvQUx/f6eyE1TPISFOUsmlMKO63w/hZZt9yVyy9DOXxErfa4ftEBpZ5Z7Rogi7hnkCd4XwLgtKJ19ziphhTljRJlgQHXT8YRgckcjHkNQaMJJYeHA4WmTQrqYEoeCwBNnwrOwbi/dhbyE1hSKG03gtLqFNpimyzL6gwzAWAkgtDsbZzs0K9AlI5Poed6xgV/s15VKhdO7oUVwKJoXdXqd2MosF1aQ7U6VdsJFWQHIMQs7rLW2A/fmyRasI5Vnud6KR8A0JM0f1ISYYusy96P6dokfEyDNb7yAQCt0JElJXp2eqcklpCUZ7V6TQfApMIYz3RaxuvG9CqdII+rpuGLiQ6soNnUdACMh4Iia5YNha1wbm8VNOBAGvqKlYtxEQOUvacR56YDwLDlITm6Y6Ejj93vyHkkMwx1BMHmCwxnNPd+JDzLFzmy8m5HvL7hIbARCkd5pBiZ0VuT/1YEAUnSpscLMnOaJ29u8+XIyUo31jtBZC2Sm5fXY/kaFlNZmryttDXzAQBSKWjkI4F58mFXHlnhyve/adl/TMtAUcuMSUpuvk7JrNmwe1iIXyNhSqtkXP3sAEAx460he2yvoZzDuvRvkBQtuUXJkoX8B8QbkfWVYPZ0gnHhz9Rv4Fd2AFIKw+Fg8nlOmKA4laWfoE/gOW/KFQCGNRcLJDyECydUmKEOZs9JD8HJs/fRcvb1ADJJQkb5HpEDB7W8t92Xo39g7E9WsugGJbff5EjPFHBBFPA4qcrREnKxAKv8Jzt8eej5kvQhIlh65QORa2YqeeAuRzascmUKVpUYMfICoelYc5w7yOqOHNGyGsr3Y7FjwngsbGB2OB7HOAyHgwiJL77ryfw1RfnhFy0uyvPIAtkJzQcAY1xB0Xc+86UfPTseCnOyw4UPPLdg5vNdyP17kAccBhArnirJmb8gGP5ribkAw5og89v9qzYObqSepaJcLSIIx05r2fKRJwrXWRc77DCLOzfdAoxXR4/3neeTXPG5Aq2C9b/CajLzAgNenPQNKMsOgE1cGNNjBEqyIAIWBqRzCIsMk3mExOwAxCgdLspDmXB7Sa9zAyCpQEnrEVBaHK0mzvJq8Ru9AFCzGMqidJhtJgCMEPRXXKvHj5FkZk9pjGezxxduOeaadXlPtWHDdkwoZYjF9UjtxrCvKMoEgM3W9h9HiEPcjj6UyTCmkWuePKPlIPbzuC4YF9u5DF4An8OntJzAPT7qR0Mhfyssif98iA9ABosqFRql/OHECVSLl8nyAOFbn+JJTHjuLsRuCsUEhwfJwb7e61gA6UOeX2sbiz3ZCaVZd/PHvri4l1Zg+ZF3J/cXYCGbkCuwA5JEF8oxElF3bA06G+t9QoQM2KtHT4nsPaDlthuVTJyKHRsIyRkfBdzyvi/PbvWkA/WSCMs65PnNT1p6ofyCeY4UsK1mZpHgexabo2tfKMnn32KvMfPCKS23o6DrBcCiSkW5oTkVPbZ0gSNzMblhLOf2+K695e1xVGYPJyE7rrluMG+uksWYLU7CbhGzxC++03L8T2yPA+CRssok/G0dPkes8PSkbsRTIlzM4AMSftn0bSNZBCVPPiMQJq4ZcFss6hvCdZJe87F6AOACAHBtAHG8khV7kERzztpL5BdOiY1jTWpKgRhVv/lOQYEoNEh/4+GjkaBq6wkLCCA+TSGjO8dBuxJ1RxgM3rdpNxCs3mbw0xTajazOZQAirrsN0PDL4coAQDfAF4zahairdX0GACrOt6vawSFSx/CbZIMAEAS+XdXqFNWxAgCiw7erWpWoW9TKKwCg4vSOrQhCtdfm7LxjWKebR8nxBEPWidIwxjn/EVh1df9WFQArJ18wGqvvE2V6ddYCwDOtoG1fng4DYcEgIEOHrRE8BWZ/NfMcxPAge+U1zTx8pGn7f+Ie1XEozdBGAAAAAElFTkSuQmCC';
+
 const HD_LINES = [
   'https://lzlukvca.cc',
   'https://psfxhhox.top',
@@ -431,6 +433,30 @@ async function hdResolveCode(category) {
   return value;
 }
 
+function hdTabId(tab, index) {
+  const tid = String((tab && tab.tab) || '').trim();
+  if (tid) return tid;
+  const filter = tab && typeof tab.filter === 'object' ? tab.filter : {};
+  const keys = ['cat_id', 'tag_id', 'source'];
+  for (let i = 0; i < keys.length; i += 1) {
+    const value = filter[keys[i]];
+    if (value != null && String(value).trim() !== '') return keys[i] + ':' + value;
+  }
+  return 'i:' + index;
+}
+
+function hdPickTab(tabs, want) {
+  if (!tabs || !tabs.length) return null;
+  const value = String(want || '').trim();
+  if (!value) return tabs[0];
+  for (let i = 0; i < tabs.length; i += 1) {
+    if (hdTabId(tabs[i], i) === value) return tabs[i];
+  }
+  const index = Number(value);
+  if (Number.isInteger(index) && index >= 0 && index < tabs.length) return tabs[index];
+  return tabs[0];
+}
+
 function hdShow(raw) {
   if (!raw || typeof raw !== 'object') return null;
   let id = String(raw.id || raw.drama_id || '').trim();
@@ -451,58 +477,114 @@ function hdShow(raw) {
   };
 }
 
+async function hdList(params) {
+  await hdEnsureLogin().catch(function () {});
+  const page = params.page || 1;
+  const category = (params.category || 'hot').trim();
+  const sort = (params.sort || '').trim().toLowerCase();
+  const order = category === 'new' || sort === 'new' ? 'new' : 'hot';
+  if (category && category !== 'hot' && category !== 'new' && category !== 'all') {
+    try {
+      const code = await hdResolveCode(category);
+      const tabs = await hdNavFilter(code);
+      const picked = hdPickTab(tabs, params.tab);
+      if (picked && picked.tab) {
+        const payload = await hdApi('/drama/navBlock', {
+          code,
+          tab: String(picked.tab),
+          page: String(page),
+        }, true);
+        const blocks = hdRows((payload && payload.data) || payload);
+        const items = [];
+        blocks.forEach(function (block) {
+          const nested = block.items || block.dramas;
+          if (Array.isArray(nested)) items.push.apply(items, nested);
+          else if (block.id || block.drama_id) items.push(block);
+        });
+        const shows = items.map(hdShow).filter(function (item) { return item; });
+        if (shows.length) return shows.slice(0, 24);
+      }
+      if (picked && picked.filter && typeof picked.filter === 'object') {
+        const request = { page: String(page), page_size: '24' };
+        ['cat_id', 'tag_id', 'source'].forEach(function (key) {
+          if (picked.filter[key] != null && String(picked.filter[key]) !== '') {
+            request[key] = picked.filter[key];
+          }
+        });
+        if (sort === 'hot' || sort === 'new') request.order = sort + ':top';
+        else if (picked.filter.order) request.order = picked.filter.order;
+        const payload = await hdApi('/drama/list', request, true);
+        const shows = hdRows((payload && payload.data) || payload).map(hdShow).filter(function (item) { return item; });
+        if (shows.length) return shows;
+      }
+    } catch (error) {
+      // 频道接口失败时回退到通用列表
+    }
+  }
+  const payload = await hdApi('/drama/list', {
+    page: String(page),
+    page_size: '24',
+    order,
+  });
+  return hdRows((payload && payload.data) || payload).map(hdShow).filter(function (item) { return item; });
+}
+
 const SOURCE = {
   name: '黄豆短剧',
   async list(params) {
+    return hdList(params);
+  },
+  async ranks() {
     await hdEnsureLogin().catch(function () {});
-    const page = params.page || 1;
-    const category = (params.category || 'hot').trim();
-    const sort = (params.sort || '').trim().toLowerCase();
-    const order = category === 'new' || sort === 'new' ? 'new' : 'hot';
-    if (category && category !== 'hot' && category !== 'new' && category !== 'all') {
-      try {
-        const code = await hdResolveCode(category);
-        const tabs = await hdNavFilter(code);
-        const picked = tabs[0];
-        if (picked && picked.tab) {
-          const payload = await hdApi('/drama/navBlock', {
-            code,
-            tab: String(picked.tab),
-            page: String(page),
-          }, true);
-          const blocks = hdRows((payload && payload.data) || payload);
-          const items = [];
-          blocks.forEach(function (block) {
-            const nested = block.items || block.dramas;
-            if (Array.isArray(nested)) items.push.apply(items, nested);
-            else if (block.id || block.drama_id) items.push(block);
-          });
-          const shows = items.map(hdShow).filter(function (item) { return item; });
-          if (shows.length) return shows.slice(0, 24);
+    const groups = [
+      {
+        id: 'recommend',
+        title: '推荐',
+        ranks: [
+          { id: 'hot', title: '热门', filters: [] },
+          { id: 'new', title: '最新', filters: [] },
+        ],
+      },
+    ];
+    try {
+      const nav = await hdNavList();
+      const channels = [];
+      for (let i = 0; i < nav.length; i += 1) {
+        const code = String(nav[i].code || '').trim().toLowerCase();
+        if (!code || code === 'hot' || code === 'new') continue;
+        let filters = [];
+        try {
+          const tabs = await hdNavFilter(code);
+          const items = tabs
+            .map(function (tab, index) {
+              const id = hdTabId(tab, index);
+              return { id, title: String(tab.name || id) };
+            })
+            .filter(function (item) { return item.id && item.title; });
+          if (items.length) filters = [{ title: '分类', items }];
+        } catch (error) {
+          filters = [];
         }
-        if (picked && picked.filter && typeof picked.filter === 'object') {
-          const request = { page: String(page), page_size: '24' };
-          ['cat_id', 'tag_id', 'source'].forEach(function (key) {
-            if (picked.filter[key] != null && String(picked.filter[key]) !== '') {
-              request[key] = picked.filter[key];
-            }
-          });
-          if (sort === 'hot' || sort === 'new') request.order = sort + ':top';
-          else if (picked.filter.order) request.order = picked.filter.order;
-          const payload = await hdApi('/drama/list', request, true);
-          const shows = hdRows((payload && payload.data) || payload).map(hdShow).filter(function (item) { return item; });
-          if (shows.length) return shows;
-        }
-      } catch (error) {
-        // 频道接口失败时回退到通用列表
+        channels.push({
+          id: code,
+          title: String(nav[i].name || code),
+          filters,
+        });
       }
+      if (channels.length) groups.push({ id: 'channel', title: '频道', ranks: channels });
+    } catch (error) {
+      // 导航接口失败时只保留推荐
     }
-    const payload = await hdApi('/drama/list', {
-      page: String(page),
-      page_size: '24',
-      order,
+    return groups;
+  },
+  async rank(params) {
+    const items = await hdList({
+      page: params.page || 1,
+      category: params.rank || 'hot',
+      sort: params.rank === 'new' ? 'new' : 'hot',
+      tab: params.filter || '',
     });
-    return hdRows((payload && payload.data) || payload).map(hdShow).filter(function (item) { return item; });
+    return { items, hasMore: items.length >= 20 };
   },
   async search(params) {
     await hdEnsureLogin().catch(function () {});
@@ -575,8 +657,26 @@ async function handleList(query) {
   const page = Math.max(1, Number(query.get('page') || 1) || 1);
   const category = String(query.get('category') || query.get('group') || '').trim();
   const sort = String(query.get('sort') || '').trim();
-  const items = await SOURCE.list({ page, category, sort });
+  const tab = String(query.get('tab') || '').trim();
+  const items = await SOURCE.list({ page, category, sort, tab });
   return { items: normalizeList(items) };
+}
+
+async function handleRanks(query) {
+  const group = String(query.get('group') || '').trim();
+  if (!group) {
+    const groups = typeof SOURCE.ranks === 'function' ? await SOURCE.ranks() : [];
+    return { groups };
+  }
+  const page = Math.max(1, Number(query.get('page') || 1) || 1);
+  const rank = String(query.get('rank') || '').trim();
+  const filter = String(query.get('filter') || '').trim();
+  if (typeof SOURCE.rank !== 'function') return { items: [] };
+  const payload = await SOURCE.rank({ group, rank, filter, page });
+  return {
+    items: normalizeList(payload.items || []),
+    hasMore: Boolean(payload.hasMore),
+  };
 }
 
 async function handleSearch(query) {
@@ -647,6 +747,24 @@ async function handleRequest(request) {
   }
   if (path === '/v1/list') {
     return jsonResponse(200, await handleList(url.searchParams));
+  }
+  if (path === '/v1/ranks') {
+    return jsonResponse(200, await handleRanks(url.searchParams));
+  }
+  if (path === '/v1/logo') {
+    if (typeof LOGO_BASE64 !== 'string' || !LOGO_BASE64) {
+      return jsonResponse(404, { error: { code: 'NOT_FOUND', message: '未内置 Logo' } });
+    }
+    const bytes = Buffer.from(LOGO_BASE64, 'base64');
+    return new Response(bytes, {
+      status: 200,
+      headers: {
+        'Content-Type': 'image/png',
+        'Content-Length': String(bytes.length),
+        'Cache-Control': 'public, max-age=86400',
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
   }
   if (path === '/v1/search') {
     return jsonResponse(200, await handleSearch(url.searchParams));

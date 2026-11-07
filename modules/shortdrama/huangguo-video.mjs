@@ -207,12 +207,25 @@ function jsonResponse(status, payload) {
   });
 }
 
+const LOGO_BASE64 = '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';
+
 const HG_BASE = 'https://huangguoai.com';
 const HG_HEADERS = {
   'User-Agent': UA,
   Accept: 'application/json, text/plain, */*',
   Referer: HG_BASE + '/',
 };
+const HG_CHANNELS = [
+  ['hot', '热门'],
+  ['new', '最新'],
+  ['rank', '排行榜'],
+  ['ai-duanju', 'AI短剧'],
+  ['ai-manju', '成人漫剧'],
+  ['ai-huanlian', 'AI换脸'],
+  ['ai-mogai', 'AI魔改'],
+];
+
+let hgTagGroups = null;
 
 function hgRows(payload) {
   const node = payload && typeof payload.data === 'object' && payload.data ? payload.data : payload;
@@ -257,37 +270,114 @@ function hgItem(raw) {
   };
 }
 
+async function hgCatalog(category, page, sort) {
+  const cat = (category || 'hot').trim();
+  const order = (sort || '').trim().toLowerCase();
+  let url;
+  if (cat === 'rank' || cat === 'ranks') {
+    url = HG_BASE + '/api/ranks/hot?page=' + encodeURIComponent(page);
+  } else if (/^ai-/.test(cat)) {
+    url =
+      HG_BASE +
+      '/api/videos/category/' +
+      encodeURIComponent(cat) +
+      '?page=' +
+      encodeURIComponent(page) +
+      '&size=24&sort=' +
+      encodeURIComponent(order === 'new' ? 'new' : 'hot');
+  } else {
+    const fallback = cat === 'new' || order === 'new' ? 'new' : 'hot';
+    url =
+      HG_BASE +
+      '/api/videos?page=' +
+      encodeURIComponent(page) +
+      '&page_size=24&sort=' +
+      encodeURIComponent(fallback);
+  }
+  const payload = await fetchJson(url, { headers: HG_HEADERS, timeout: 20000, retries: 1 });
+  return hgRows(payload).map(hgItem).filter(function (item) {
+    return item;
+  });
+}
+
+async function hgTagCatalog(slug, page) {
+  const path =
+    '/tag/' +
+    encodeURIComponent(slug) +
+    '/' +
+    (Number(page) > 1 ? 'page/' + Number(page) + '/' : '');
+  const response = await fetchBuffer(HG_BASE + path, {
+    headers: Object.assign({}, HG_HEADERS, { Accept: 'text/html,application/xhtml+xml' }),
+    timeout: 25000,
+    retries: 1,
+  });
+  const html = response.body.toString('utf8');
+  const grid =
+    (html.match(
+      /class="hg-card-grid[^"]*"[^>]*>([\s\S]*?)(?:class="hg-channel-pager"|class="hg-pager"|<\/main>|$)/i,
+    ) || [])[1] || html;
+  const blocks = grid.split(/<div class="hg-drama-card"[^>]*>/).slice(1);
+  const items = [];
+  blocks.forEach(function (block) {
+    const link = block.match(/href="\/video\/(\d+)\/"/);
+    if (!link) return;
+    const cover = block.match(/data-src="([^"]+)"/);
+    const alt = block.match(/alt="([^"]*)"/);
+    const episode = block.match(/data-ep-base="([^"]*)"/);
+    let title = (alt && alt[1] ? alt[1] : '').trim();
+    if (!title) {
+      const body = block.match(/hg-drama-card__title"[^>]*>[\s\S]*?<a[^>]*>([\s\S]*?)<\/a>/);
+      title = body ? body[1].replace(/<[^>]+>/g, '').trim() : link[1];
+    }
+    const episodeText = episode ? episode[1] : '';
+    const total = Number((episodeText.match(/(\d+)/) || [])[1] || 0) || 0;
+    items.push({
+      id: link[1],
+      title,
+      cover: cover ? '/v1/cover?url=' + encodeURIComponent(cover[1]) : '',
+      description: '',
+      total,
+      finished: episodeText.indexOf('全') >= 0,
+      tags: [],
+      hot: 0,
+    });
+  });
+  return items;
+}
+
+async function hgTags() {
+  if (hgTagGroups) return hgTagGroups;
+  const payload = await fetchJson(HG_BASE + '/api/tags', {
+    headers: HG_HEADERS,
+    timeout: 20000,
+    retries: 1,
+  });
+  const categories = (payload && payload.data && payload.data.categories) || [];
+  hgTagGroups = categories
+    .map(function (category) {
+      const ranks = (category.tags || [])
+        .filter(function (tag) {
+          return tag && tag.slug;
+        })
+        .map(function (tag) {
+          return {
+            id: 'tag:' + String(tag.slug),
+            title: String(tag.name || tag.slug),
+            filters: [],
+          };
+        });
+      return { id: 'tagcat:' + String(category.code || category.id), title: String(category.name || '题材'), ranks };
+    })
+    .filter(function (group) {
+      return group.ranks.length > 0;
+    });
+  return hgTagGroups;
+}
+
 const SOURCE = {
   name: '黄果短剧',
   async list(params) {
-    const page = params.page || 1;
-    const category = (params.category || 'hot').trim();
-    const sort = (params.sort || '').trim().toLowerCase();
-    let url;
-    if (category === 'rank' || category === 'ranks') {
-      url = HG_BASE + '/api/ranks/hot?page=' + encodeURIComponent(page);
-    } else if (/^ai-/.test(category)) {
-      url =
-        HG_BASE +
-        '/api/videos/category/' +
-        encodeURIComponent(category) +
-        '?page=' +
-        encodeURIComponent(page) +
-        '&size=24&sort=' +
-        encodeURIComponent(sort === 'new' ? 'new' : 'hot');
-    } else {
-      const order = category === 'new' || sort === 'new' ? 'new' : 'hot';
-      url =
-        HG_BASE +
-        '/api/videos?page=' +
-        encodeURIComponent(page) +
-        '&page_size=24&sort=' +
-        encodeURIComponent(order);
-    }
-    const payload = await fetchJson(url, { headers: HG_HEADERS, timeout: 20000, retries: 1 });
-    return hgRows(payload).map(hgItem).filter(function (item) {
-      return item;
-    });
+    return hgCatalog(params.category || 'hot', params.page || 1, params.sort || '');
   },
   async search(params) {
     const url =
@@ -300,6 +390,35 @@ const SOURCE = {
     return hgRows(payload).map(hgItem).filter(function (item) {
       return item;
     });
+  },
+  async ranks() {
+    const groups = [
+      {
+        id: 'channel',
+        title: '频道',
+        ranks: HG_CHANNELS.map(function (pair) {
+          return { id: pair[0], title: pair[1], filters: [] };
+        }),
+      },
+    ];
+    try {
+      const tags = await hgTags();
+      groups.push.apply(groups, tags);
+    } catch (error) {
+      // 题材接口失败时仍保留频道
+    }
+    return groups;
+  },
+  async rank(params) {
+    const rank = String(params.rank || 'hot');
+    const page = params.page || 1;
+    let items;
+    if (rank.indexOf('tag:') === 0) {
+      items = await hgTagCatalog(rank.slice(4), page);
+    } else {
+      items = await hgCatalog(rank, page, '');
+    }
+    return { items, hasMore: items.length >= 20 };
   },
   async detail(id) {
     const payload = await fetchJson(HG_BASE + '/api/videos/' + encodeURIComponent(id), {
@@ -361,8 +480,26 @@ async function handleList(query) {
   const page = Math.max(1, Number(query.get('page') || 1) || 1);
   const category = String(query.get('category') || query.get('group') || '').trim();
   const sort = String(query.get('sort') || '').trim();
-  const items = await SOURCE.list({ page, category, sort });
+  const tab = String(query.get('tab') || '').trim();
+  const items = await SOURCE.list({ page, category, sort, tab });
   return { items: normalizeList(items) };
+}
+
+async function handleRanks(query) {
+  const group = String(query.get('group') || '').trim();
+  if (!group) {
+    const groups = typeof SOURCE.ranks === 'function' ? await SOURCE.ranks() : [];
+    return { groups };
+  }
+  const page = Math.max(1, Number(query.get('page') || 1) || 1);
+  const rank = String(query.get('rank') || '').trim();
+  const filter = String(query.get('filter') || '').trim();
+  if (typeof SOURCE.rank !== 'function') return { items: [] };
+  const payload = await SOURCE.rank({ group, rank, filter, page });
+  return {
+    items: normalizeList(payload.items || []),
+    hasMore: Boolean(payload.hasMore),
+  };
 }
 
 async function handleSearch(query) {
@@ -433,6 +570,24 @@ async function handleRequest(request) {
   }
   if (path === '/v1/list') {
     return jsonResponse(200, await handleList(url.searchParams));
+  }
+  if (path === '/v1/ranks') {
+    return jsonResponse(200, await handleRanks(url.searchParams));
+  }
+  if (path === '/v1/logo') {
+    if (typeof LOGO_BASE64 !== 'string' || !LOGO_BASE64) {
+      return jsonResponse(404, { error: { code: 'NOT_FOUND', message: '未内置 Logo' } });
+    }
+    const bytes = Buffer.from(LOGO_BASE64, 'base64');
+    return new Response(bytes, {
+      status: 200,
+      headers: {
+        'Content-Type': 'image/png',
+        'Content-Length': String(bytes.length),
+        'Cache-Control': 'public, max-age=86400',
+        'Access-Control-Allow-Origin': '*',
+      },
+    });
   }
   if (path === '/v1/search') {
     return jsonResponse(200, await handleSearch(url.searchParams));
