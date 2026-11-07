@@ -2,12 +2,31 @@
   "modules": [
     {
       "id": "rexhub.hongguo.video",
-      "title": "红果视频流",
-      "description": "红果漫剧播放层：本地解密并代理 /v1/episodes/{id}/stream 视频流，供短剧插件播放使用",
-      "version": "3.4.6",
+      "title": "红果短剧",
+      "description": "红果短剧全能力插件：榜单/筛选/目录/搜索/详情 + 播放流解密代理，单进程提供全部接口",
+      "version": "4.0.0",
       "author": "RexHub",
-      "port": 25566,
-      "file": "modules/hongguo-video.mjs"
+      "category": "shortdrama",
+      "file": "modules/hongguo-video.mjs",
+      "capabilities": [
+        "playback.extract",
+        "playback.stream"
+      ],
+      "endpoints": {
+        "playback.extract": {
+          "path": "/v1/rankings",
+          "method": "GET"
+        },
+        "playback.stream": {
+          "path": "/v1/episodes/{id}/stream",
+          "method": "GET"
+        }
+      },
+      "runtime": {
+        "type": "isolated",
+        "engine": "node",
+        "entrypoint": "module.mjs"
+      }
     }
   ]
 }
