@@ -183,11 +183,22 @@ function privateHost(hostname) {
   const host = String(hostname || '').toLowerCase();
   if (!host) return true;
   if (host === 'localhost' || host.endsWith('.local')) return true;
-  if (host === '::1' || host === '[::1]') return true;
+  if (host === '::1' || host === '[::1]' || host === '[::]' || host === '::') return true;
+  if (host === '0.0.0.0' || host === '[::ffff:0.0.0.0]') return true;
+  if (/^\[::ffff:/i.test(host)) return true;
   if (/^127\./.test(host) || /^10\./.test(host) || /^169\.254\./.test(host)) return true;
   if (/^192\.168\./.test(host)) return true;
   if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return true;
+  if (/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host)) return true;
   return false;
+}
+
+function pageLimit(value, fallback) {
+  const text = String(value == null ? '' : value).trim();
+  if (!text) return fallback;
+  const n = Number(text);
+  if (!Number.isFinite(n) || n <= 0) return fallback;
+  return Math.min(24, Math.max(1, Math.floor(n)));
 }
 
 function required(value, message) {
@@ -263,8 +274,12 @@ async function ygCall(route, params, method) {
   const lines = ygApiBase
     ? [ygApiBase].concat(YG_LINES.filter(function (line) { return line !== ygApiBase; }))
     : YG_LINES.slice();
+  // 主线故障时不能把 4 条线路 × 20 秒串完，整体预算 12 秒
+  const deadline = Date.now() + 12000;
   let lastError = null;
   for (let i = 0; i < lines.length; i += 1) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
     const api = lines[i];
     const url = api.replace(/\/$/, '') + route;
     try {
@@ -275,7 +290,7 @@ async function ygCall(route, params, method) {
           Referer: YG_SITE + '/',
           Origin: YG_SITE,
         },
-        timeout: 20000,
+        timeout: Math.min(6000, remaining),
         retries: 0,
       };
       if ((method || 'POST').toUpperCase() === 'GET') {
@@ -395,9 +410,10 @@ const SOURCE = {
   name: '野果短剧',
   async list(params) {
     const page = params.page || 1;
+    const limit = pageLimit(params.limit, 24);
     const category = (params.category || 'hot').trim();
     const sort = (params.sort || '').trim().toLowerCase();
-    const request = { page, limit: 24 };
+    const request = { page, limit };
     if (category.indexOf('theme:') === 0) request.theme = category.slice(6);
     else if (/^\d+$/.test(category)) request.theme = category;
     if (category === 'new' || sort === 'new') request.recommend = '2';
@@ -435,7 +451,8 @@ const SOURCE = {
   },
   async rank(params) {
     const rank = String(params.rank || 'hot');
-    const request = { page: params.page || 1, limit: 24 };
+    const limit = pageLimit(params.limit, 24);
+    const request = { page: params.page || 1, limit };
     if (rank.indexOf('theme:') === 0) request.theme = rank.slice(6);
     request.recommend = rank === 'new' ? '2' : '1';
     const filter = String(params.filter || '');
@@ -444,12 +461,17 @@ const SOURCE = {
     const data = await ygCall('/api/theater/exploreList', request, 'POST');
     const rows = Array.isArray(data.list) ? data.list : [];
     const items = rows.map(ygShow).filter(function (item) { return item; });
-    return { items, hasMore: items.length >= 20 };
+    return { items, hasMore: items.length >= limit };
   },
   async search(params) {
     const data = await ygCall(
       '/api/search/result',
-      { keyword: params.keyword, tab: 'video', page: params.page || 1, limit: 20 },
+      {
+        keyword: params.keyword,
+        tab: 'video',
+        page: params.page || 1,
+        limit: pageLimit(params.limit, 24),
+      },
       'POST',
     );
     const rows = Array.isArray(data.list) ? data.list : [];
@@ -509,11 +531,13 @@ function normalizeList(items) {
 
 async function handleList(query) {
   const page = Math.max(1, Number(query.get('page') || 1) || 1);
+  const limit = pageLimit(query.get('limit'), 24);
   const category = String(query.get('category') || query.get('group') || '').trim();
   const sort = String(query.get('sort') || '').trim();
   const tab = String(query.get('tab') || '').trim();
-  const items = await SOURCE.list({ page, category, sort, tab });
-  return { items: normalizeList(items) };
+  const items = normalizeList(await SOURCE.list({ page, category, sort, tab, limit }));
+  const hasMore = items.length >= limit;
+  return { items, hasMore, nextPage: hasMore ? page + 1 : null };
 }
 
 async function handleRanks(query) {
@@ -523,22 +547,24 @@ async function handleRanks(query) {
     return { groups };
   }
   const page = Math.max(1, Number(query.get('page') || 1) || 1);
+  const limit = pageLimit(query.get('limit'), 24);
   const rank = String(query.get('rank') || '').trim();
   const filter = String(query.get('filter') || '').trim();
   if (typeof SOURCE.rank !== 'function') return { items: [] };
-  const payload = await SOURCE.rank({ group, rank, filter, page });
-  return {
-    items: normalizeList(payload.items || []),
-    hasMore: Boolean(payload.hasMore),
-  };
+  const payload = await SOURCE.rank({ group, rank, filter, page, limit });
+  const items = normalizeList(payload.items || []);
+  const hasMore = Boolean(payload.hasMore) && items.length > 0;
+  return { items, hasMore, nextPage: hasMore ? page + 1 : null };
 }
 
 async function handleSearch(query) {
   const keyword = String(query.get('keyword') || query.get('q') || query.get('keywords') || '').trim();
   const page = Math.max(1, Number(query.get('page') || 1) || 1);
-  if (!keyword) return { items: [] };
-  const items = await SOURCE.search({ keyword, page });
-  return { items: normalizeList(items) };
+  const limit = pageLimit(query.get('limit'), 24);
+  if (!keyword) return { items: [], hasMore: false, nextPage: null };
+  const items = normalizeList(await SOURCE.search({ keyword, page, limit }));
+  const hasMore = items.length >= limit;
+  return { items, hasMore, nextPage: hasMore ? page + 1 : null };
 }
 
 async function handleDetail(rawId) {

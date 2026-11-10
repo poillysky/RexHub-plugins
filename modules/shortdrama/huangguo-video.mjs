@@ -183,11 +183,20 @@ function privateHost(hostname) {
   const host = String(hostname || '').toLowerCase();
   if (!host) return true;
   if (host === 'localhost' || host.endsWith('.local')) return true;
-  if (host === '::1' || host === '[::1]') return true;
+  if (host === '::1' || host === '[::1]' || host === '[::]' || host === '::') return true;
+  if (host === '0.0.0.0' || host === '[::ffff:0.0.0.0]') return true;
+  if (/^\[::ffff:/i.test(host)) return true;
   if (/^127\./.test(host) || /^10\./.test(host) || /^169\.254\./.test(host)) return true;
   if (/^192\.168\./.test(host)) return true;
   if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return true;
+  if (/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host)) return true;
   return false;
+}
+
+function pageLimit(value, fallback) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(24, Math.max(1, Math.floor(n)));
 }
 
 function required(value, message) {
@@ -270,7 +279,8 @@ function hgItem(raw) {
   };
 }
 
-async function hgCatalog(category, page, sort) {
+async function hgCatalog(category, page, sort, limit) {
+  const size = pageLimit(limit, 24);
   const cat = (category || 'hot').trim();
   const order = (sort || '').trim().toLowerCase();
   let url;
@@ -283,7 +293,9 @@ async function hgCatalog(category, page, sort) {
       encodeURIComponent(cat) +
       '?page=' +
       encodeURIComponent(page) +
-      '&size=24&sort=' +
+      '&size=' +
+      size +
+      '&sort=' +
       encodeURIComponent(order === 'new' ? 'new' : 'hot');
   } else {
     const fallback = cat === 'new' || order === 'new' ? 'new' : 'hot';
@@ -291,10 +303,12 @@ async function hgCatalog(category, page, sort) {
       HG_BASE +
       '/api/videos?page=' +
       encodeURIComponent(page) +
-      '&page_size=24&sort=' +
+      '&page_size=' +
+      size +
+      '&sort=' +
       encodeURIComponent(fallback);
   }
-  const payload = await fetchJson(url, { headers: HG_HEADERS, timeout: 20000, retries: 1 });
+  const payload = await fetchJson(url, { headers: HG_HEADERS, timeout: 6000, retries: 0 });
   return hgRows(payload).map(hgItem).filter(function (item) {
     return item;
   });
@@ -308,8 +322,8 @@ async function hgTagCatalog(slug, page) {
     (Number(page) > 1 ? 'page/' + Number(page) + '/' : '');
   const response = await fetchBuffer(HG_BASE + path, {
     headers: Object.assign({}, HG_HEADERS, { Accept: 'text/html,application/xhtml+xml' }),
-    timeout: 25000,
-    retries: 1,
+    timeout: 6000,
+    retries: 0,
   });
   const html = response.body.toString('utf8');
   const grid =
@@ -377,7 +391,12 @@ async function hgTags() {
 const SOURCE = {
   name: '黄果短剧',
   async list(params) {
-    return hgCatalog(params.category || 'hot', params.page || 1, params.sort || '');
+    return hgCatalog(
+      params.category || 'hot',
+      params.page || 1,
+      params.sort || '',
+      params.limit,
+    );
   },
   async search(params) {
     const url =
@@ -386,7 +405,7 @@ const SOURCE = {
       encodeURIComponent(params.keyword) +
       '&page=' +
       encodeURIComponent(params.page || 1);
-    const payload = await fetchJson(url, { headers: HG_HEADERS, timeout: 20000, retries: 1 });
+    const payload = await fetchJson(url, { headers: HG_HEADERS, timeout: 6000, retries: 0 });
     return hgRows(payload).map(hgItem).filter(function (item) {
       return item;
     });
@@ -416,15 +435,16 @@ const SOURCE = {
     if (rank.indexOf('tag:') === 0) {
       items = await hgTagCatalog(rank.slice(4), page);
     } else {
-      items = await hgCatalog(rank, page, '');
+      items = await hgCatalog(rank, page, '', params.limit);
     }
-    return { items, hasMore: items.length >= 20 };
+    // 上游没有稳定总数，只要这页有内容就允许继续翻，空页自然收敛
+    return { items, hasMore: items.length > 0 };
   },
   async detail(id) {
     const payload = await fetchJson(HG_BASE + '/api/videos/' + encodeURIComponent(id), {
       headers: HG_HEADERS,
-      timeout: 20000,
-      retries: 1,
+      timeout: 6000,
+      retries: 0,
     });
     const data = (payload && payload.data) || {};
     const episodes = [];
@@ -458,14 +478,34 @@ const SOURCE = {
   async resolve(id, episodeKey) {
     const n = Math.max(1, Number(episodeKey || 1) || 1);
     const payload = await fetchJson(
-      HG_BASE + '/api/videos/' + encodeURIComponent(id) + '/play?ep=' + encodeURIComponent(n),
-      { headers: HG_HEADERS, timeout: 20000, retries: 1 },
+      HG_BASE +
+        '/api/videos/' +
+        encodeURIComponent(id) +
+        '/episodes/' +
+        encodeURIComponent(n) +
+        '/playback',
+      {
+        method: 'POST',
+        headers: Object.assign({}, HG_HEADERS, {
+          'Content-Type': 'application/json',
+          Origin: HG_BASE,
+        }),
+        body: '{}',
+        timeout: 8000,
+        retries: 0,
+      },
     );
     const data = (payload && payload.data) || {};
-    let url = String(data.video_url || data.url || '').trim();
+    const streams = data.streams || {};
+    let url = String(streams.main || streams.hevc || '').trim();
     if (url.indexOf('//') === 0) url = 'https:' + url;
-    if (!url && data.video_api) url = String(data.video_api).trim();
-    return url;
+    if (!url) return null;
+    // 新版 CDN 要求播放清单携带鉴权头，分片本身带 auth_key 可直连
+    const cdn = data.cdn || {};
+    const headers = {};
+    if (cdn.authKey && cdn.authValue) headers[String(cdn.authKey)] = String(cdn.authValue);
+    if (cdn.app) headers['x-cdn-app'] = String(cdn.app);
+    return { url, headers };
   },
 };
 
@@ -478,11 +518,13 @@ function normalizeList(items) {
 
 async function handleList(query) {
   const page = Math.max(1, Number(query.get('page') || 1) || 1);
+  const limit = pageLimit(query.get('limit'), 24);
   const category = String(query.get('category') || query.get('group') || '').trim();
   const sort = String(query.get('sort') || '').trim();
   const tab = String(query.get('tab') || '').trim();
-  const items = await SOURCE.list({ page, category, sort, tab });
-  return { items: normalizeList(items) };
+  const items = normalizeList(await SOURCE.list({ page, category, sort, tab, limit }));
+  const hasMore = items.length > 0;
+  return { items, hasMore, nextPage: hasMore ? page + 1 : null };
 }
 
 async function handleRanks(query) {
@@ -492,22 +534,23 @@ async function handleRanks(query) {
     return { groups };
   }
   const page = Math.max(1, Number(query.get('page') || 1) || 1);
+  const limit = pageLimit(query.get('limit'), 24);
   const rank = String(query.get('rank') || '').trim();
   const filter = String(query.get('filter') || '').trim();
   if (typeof SOURCE.rank !== 'function') return { items: [] };
-  const payload = await SOURCE.rank({ group, rank, filter, page });
-  return {
-    items: normalizeList(payload.items || []),
-    hasMore: Boolean(payload.hasMore),
-  };
+  const payload = await SOURCE.rank({ group, rank, filter, page, limit });
+  const items = normalizeList(payload.items || []);
+  const hasMore = Boolean(payload.hasMore) && items.length > 0;
+  return { items, hasMore, nextPage: hasMore ? page + 1 : null };
 }
 
 async function handleSearch(query) {
   const keyword = String(query.get('keyword') || query.get('q') || query.get('keywords') || '').trim();
   const page = Math.max(1, Number(query.get('page') || 1) || 1);
-  if (!keyword) return { items: [] };
-  const items = await SOURCE.search({ keyword, page });
-  return { items: normalizeList(items) };
+  if (!keyword) return { items: [], hasMore: false, nextPage: null };
+  const items = normalizeList(await SOURCE.search({ keyword, page }));
+  const hasMore = items.length > 0;
+  return { items, hasMore, nextPage: hasMore ? page + 1 : null };
 }
 
 async function handleDetail(rawId) {
@@ -542,11 +585,25 @@ async function handleStream(rawId) {
   const id = required(decodeURIComponent(rawId), '缺少分集 ID');
   const split = id.lastIndexOf('_');
   if (split <= 0) throw new Error('分集 ID 不合法');
-  const videoId = id.slice(0, split);
-  const episodeKey = id.slice(split + 1);
-  const url = await SOURCE.resolve(videoId, episodeKey);
-  if (!url) throw new Error('未获取到播放地址');
-  return url;
+  const stream = await SOURCE.resolve(id.slice(0, split), id.slice(split + 1));
+  if (!stream || !stream.url) throw new Error('未获取到播放地址');
+  return stream;
+}
+
+function rewritePlaylist(text, baseUrl) {
+  return text
+    .split(/\r?\n/)
+    .map(function (line) {
+      const trimmed = line.trim();
+      if (!trimmed) return line;
+      if (trimmed.charAt(0) === '#') {
+        return line.replace(/URI="([^"]+)"/g, function (whole, uri) {
+          return 'URI="' + new URL(uri, baseUrl).toString() + '"';
+        });
+      }
+      return new URL(trimmed, baseUrl).toString();
+    })
+    .join('\n');
 }
 
 async function handleRequest(request) {
@@ -598,14 +655,31 @@ async function handleRequest(request) {
   }
   const streamMatch = path.match(/^\/v1\/episodes\/([^/]+)\/stream$/);
   if (streamMatch) {
-    const target = await handleStream(streamMatch[1]);
+    const stream = await handleStream(streamMatch[1]);
     if (url.searchParams.get('json') === '1') {
-      return jsonResponse(200, { url: target });
+      return jsonResponse(200, { url: stream.url });
     }
-    return new Response(null, {
-      status: 302,
+    const upstream = await fetchBuffer(stream.url, {
+      headers: Object.assign({ 'User-Agent': UA, Accept: '*/*' }, stream.headers || {}),
+      timeout: 8000,
+      retries: 1,
+    });
+    const text = upstream.body.toString(
+      'utf8',
+      0,
+      Math.min(upstream.body.length, 2 * 1024 * 1024),
+    );
+    if (text.indexOf('#EXTM3U') < 0) {
+      return new Response(null, {
+        status: 302,
+        headers: { Location: stream.url, 'Cache-Control': 'no-store' },
+      });
+    }
+    // 由插件代取带鉴权头的清单，分片地址保持绝对路径直连 CDN
+    return new Response(rewritePlaylist(text, stream.url), {
+      status: 200,
       headers: {
-        Location: target,
+        'Content-Type': 'application/vnd.apple.mpegurl',
         'Cache-Control': 'no-store',
         'Access-Control-Allow-Origin': '*',
       },

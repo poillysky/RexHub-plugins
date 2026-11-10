@@ -183,11 +183,20 @@ function privateHost(hostname) {
   const host = String(hostname || '').toLowerCase();
   if (!host) return true;
   if (host === 'localhost' || host.endsWith('.local')) return true;
-  if (host === '::1' || host === '[::1]') return true;
+  if (host === '::1' || host === '[::1]' || host === '[::]' || host === '::') return true;
+  if (host === '0.0.0.0' || host === '[::ffff:0.0.0.0]') return true;
+  if (/^\[::ffff:/i.test(host)) return true;
   if (/^127\./.test(host) || /^10\./.test(host) || /^169\.254\./.test(host)) return true;
   if (/^192\.168\./.test(host)) return true;
   if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return true;
+  if (/^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(host)) return true;
   return false;
+}
+
+function pageLimit(value, fallback) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(24, Math.max(1, Math.floor(n)));
 }
 
 function required(value, message) {
@@ -237,6 +246,7 @@ let hdToken = '';
 let hdUserId = '';
 let hdLive = '';
 let hdNav = null;
+let hdLoginFailedAt = 0;
 const hdFilters = {};
 const hdSession = crypto.randomBytes(16).toString('hex');
 const hdDevice = crypto.randomBytes(16).toString('hex');
@@ -249,24 +259,27 @@ function hdKeys(rid) {
 }
 
 function hdDecode(blob, rid) {
-  if (!blob || !blob.length) return {};
+  if (!blob || !blob.length) return null;
   if (blob.length < 32) {
     try {
-      return JSON.parse(blob.toString('utf8'));
+      const parsed = JSON.parse(blob.toString('utf8'));
+      return parsed && typeof parsed === 'object' ? parsed : null;
     } catch (error) {
-      return {};
+      return null;
     }
   }
   try {
     const decipher = crypto.createDecipheriv('aes-256-cbc', hdKeys(rid), blob.subarray(0, 16));
     let plain = Buffer.concat([decipher.update(blob.subarray(16)), decipher.final()]);
     if (plain[0] === 0x1f && plain[1] === 0x8b) plain = zlib.gunzipSync(plain);
-    return JSON.parse(plain.toString('utf8'));
+    const parsed = JSON.parse(plain.toString('utf8'));
+    return parsed && typeof parsed === 'object' ? parsed : null;
   } catch (error) {
     try {
-      return JSON.parse(blob.toString('utf8'));
+      const parsed = JSON.parse(blob.toString('utf8'));
+      return parsed && typeof parsed === 'object' ? parsed : null;
     } catch (ignored) {
-      return {};
+      return null;
     }
   }
 }
@@ -327,15 +340,26 @@ async function hdApi(path, data, silent) {
   HD_LINES.forEach(function (host) {
     if (hosts.indexOf(host) < 0) hosts.push(host);
   });
+  // 8 条备线 × 2 次重试 × 20 秒会拖垮主服务，限制线路数与总时长
+  const candidates = hosts.slice(0, 4);
+  const deadline = Date.now() + 12000;
   let lastError = null;
-  for (let i = 0; i < hosts.length; i += 1) {
-    const host = hosts[i];
+  let expired = false;
+  for (let i = 0; i < candidates.length && !expired; i += 1) {
+    const host = candidates[i];
     for (let attempt = 0; attempt < 2; attempt += 1) {
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        expired = true;
+        break;
+      }
       try {
         const request = hdRequest(host, path, data);
+        request.options.timeout = Math.min(6000, remaining);
+        request.options.retries = 0;
         const response = await fetchBuffer(request.url, request.options);
         const payload = hdDecode(response.body, request.rid);
-        if (!payload || typeof payload !== 'object') continue;
+        if (!payload) continue;
         if (payload.status === 'n' && String(payload.errorCode || payload.error || '') === '2002') {
           hdToken = '';
           hdUserId = '';
@@ -354,6 +378,10 @@ async function hdApi(path, data, silent) {
 
 async function hdEnsureLogin() {
   if (hdToken && hdUserId) return;
+  // 登录失败后冷却 60 秒，避免每个请求都重走一遍 4 条线路
+  if (Date.now() - hdLoginFailedAt < 60000) {
+    throw new Error('黄豆登录暂不可用');
+  }
   const payload = await hdApi(
     '/login/device',
     {
@@ -374,6 +402,9 @@ async function hdEnsureLogin() {
   if (data.token) {
     hdToken = String(data.token);
     hdUserId = String(data.user_id || '');
+    hdLoginFailedAt = 0;
+  } else {
+    hdLoginFailedAt = Date.now();
   }
 }
 
@@ -480,6 +511,7 @@ function hdShow(raw) {
 async function hdList(params) {
   await hdEnsureLogin().catch(function () {});
   const page = params.page || 1;
+  const limit = pageLimit(params.limit, 24);
   const category = (params.category || 'hot').trim();
   const sort = (params.sort || '').trim().toLowerCase();
   const order = category === 'new' || sort === 'new' ? 'new' : 'hot';
@@ -502,10 +534,10 @@ async function hdList(params) {
           else if (block.id || block.drama_id) items.push(block);
         });
         const shows = items.map(hdShow).filter(function (item) { return item; });
-        if (shows.length) return shows.slice(0, 24);
+        if (shows.length) return shows.slice(0, limit);
       }
       if (picked && picked.filter && typeof picked.filter === 'object') {
-        const request = { page: String(page), page_size: '24' };
+        const request = { page: String(page), page_size: String(limit) };
         ['cat_id', 'tag_id', 'source'].forEach(function (key) {
           if (picked.filter[key] != null && String(picked.filter[key]) !== '') {
             request[key] = picked.filter[key];
@@ -523,10 +555,13 @@ async function hdList(params) {
   }
   const payload = await hdApi('/drama/list', {
     page: String(page),
-    page_size: '24',
+    page_size: String(limit),
     order,
   });
-  return hdRows((payload && payload.data) || payload).map(hdShow).filter(function (item) { return item; });
+  return hdRows((payload && payload.data) || payload)
+    .map(hdShow)
+    .filter(function (item) { return item; })
+    .slice(0, limit);
 }
 
 const SOURCE = {
@@ -583,17 +618,23 @@ const SOURCE = {
       category: params.rank || 'hot',
       sort: params.rank === 'new' ? 'new' : 'hot',
       tab: params.filter || '',
+      limit: params.limit,
     });
-    return { items, hasMore: items.length >= 20 };
+    // 上游没有稳定总数，只要这页有内容就允许继续翻
+    return { items, hasMore: items.length > 0 };
   },
   async search(params) {
     await hdEnsureLogin().catch(function () {});
+    const limit = pageLimit(params.limit, 24);
     const payload = await hdApi('/drama/list', {
       page: String(params.page || 1),
-      page_size: '30',
+      page_size: String(limit),
       keywords: params.keyword,
     });
-    return hdRows((payload && payload.data) || payload).map(hdShow).filter(function (item) { return item; });
+    return hdRows((payload && payload.data) || payload)
+      .map(hdShow)
+      .filter(function (item) { return item; })
+      .slice(0, limit);
   },
   async detail(id) {
     await hdEnsureLogin().catch(function () {});
@@ -630,19 +671,14 @@ const SOURCE = {
   async resolve(id, episodeKey) {
     await hdEnsureLogin().catch(function () {});
     const seq = Math.max(1, Number(episodeKey || 1) || 1);
-    try {
-      const payload = await hdApi('/drama/play', { id, seq: String(seq) }, true);
-      const data = (payload && payload.data) || {};
-      const lines = Array.isArray(data.lines) ? data.lines : [];
-      const picked =
-        lines.find(function (line) { return String(line.name) === 'free' && line.url; }) ||
-        lines.find(function (line) { return line.url; });
-      if (picked && picked.url) return String(picked.url);
-    } catch (error) {
-      // 播放签名接口失败时回退到免签线路
-    }
-    const host = (hdLive || HD_LINES[0]).replace(/\/$/, '');
-    return host + '/api/drama/hls/' + encodeURIComponent(id) + '/' + seq + '/play.m3u8?line=free';
+    const payload = await hdApi('/drama/play', { id, seq: String(seq) }, true);
+    const data = (payload && payload.data) || {};
+    const lines = Array.isArray(data.lines) ? data.lines : [];
+    const picked =
+      lines.find(function (line) { return String(line.name) === 'free' && line.url; }) ||
+      lines.find(function (line) { return line.url; });
+    if (!picked || !picked.url) throw new Error('黄豆未返回可用播放地址');
+    return String(picked.url);
   },
 };
 
@@ -653,13 +689,19 @@ function normalizeList(items) {
   });
 }
 
+function readLimit(query) {
+  const n = Number(query.get('limit'));
+  return Number.isFinite(n) && n > 0 ? pageLimit(n, 24) : 24;
+}
+
 async function handleList(query) {
   const page = Math.max(1, Number(query.get('page') || 1) || 1);
   const category = String(query.get('category') || query.get('group') || '').trim();
   const sort = String(query.get('sort') || '').trim();
   const tab = String(query.get('tab') || '').trim();
-  const items = await SOURCE.list({ page, category, sort, tab });
-  return { items: normalizeList(items) };
+  const limit = readLimit(query);
+  const items = normalizeList(await SOURCE.list({ page, category, sort, tab, limit }));
+  return { items, hasMore: items.length > 0, nextPage: items.length > 0 ? page + 1 : null };
 }
 
 async function handleRanks(query) {
@@ -671,20 +713,21 @@ async function handleRanks(query) {
   const page = Math.max(1, Number(query.get('page') || 1) || 1);
   const rank = String(query.get('rank') || '').trim();
   const filter = String(query.get('filter') || '').trim();
-  if (typeof SOURCE.rank !== 'function') return { items: [] };
-  const payload = await SOURCE.rank({ group, rank, filter, page });
-  return {
-    items: normalizeList(payload.items || []),
-    hasMore: Boolean(payload.hasMore),
-  };
+  const limit = readLimit(query);
+  if (typeof SOURCE.rank !== 'function') return { items: [], hasMore: false, nextPage: null };
+  const payload = await SOURCE.rank({ group, rank, filter, page, limit });
+  const items = normalizeList(payload.items || []);
+  const hasMore = Boolean(payload.hasMore);
+  return { items, hasMore, nextPage: hasMore ? page + 1 : null };
 }
 
 async function handleSearch(query) {
   const keyword = String(query.get('keyword') || query.get('q') || query.get('keywords') || '').trim();
   const page = Math.max(1, Number(query.get('page') || 1) || 1);
-  if (!keyword) return { items: [] };
-  const items = await SOURCE.search({ keyword, page });
-  return { items: normalizeList(items) };
+  const limit = readLimit(query);
+  if (!keyword) return { items: [], hasMore: false, nextPage: null };
+  const items = normalizeList(await SOURCE.search({ keyword, page, limit }));
+  return { items, hasMore: items.length > 0, nextPage: items.length > 0 ? page + 1 : null };
 }
 
 async function handleDetail(rawId) {
@@ -798,8 +841,8 @@ async function handleRequest(request) {
         'User-Agent': UA,
         Accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
       },
-      timeout: 20000,
-      retries: 1,
+      timeout: 6000,
+      retries: 0,
     });
     let bytes = upstream.body;
     if (!isImage(bytes)) {
